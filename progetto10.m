@@ -13,6 +13,11 @@ N = 56700;
 D = ((s+0.7)*(s+10)*(s+90)^2);
 G = N/D;
 
+figure(2)
+margin(G);
+hold on
+grid on;
+
 %% SPECIFICHE STATICHE
 % 1) Errore a regime nullo in presenza di ingresso di riferimento a gradino di 
 %    ampiezza massima pari a 2.0
@@ -28,6 +33,7 @@ Rs = mu/s;
 % Controllo quali valore assume la funzione Ge alla pulsazione w = 0.08
 
 Ge = G * Rs;
+
 w = 0.08;
 [m, p] = bode(Ge, w);
 m_db = 20*log10(m);
@@ -37,23 +43,20 @@ m_db = 20*log10(m);
 % S(s) = 1 / (1 + R(s)*G(s))
 % che lega disturbo e uscita in questo modo: Y(s) = S(s)*D(s)
 
-attenuation_db = 20*log10(20);
+attenuation_db = 20*log10(19);
 mu_db = attenuation_db - m_db;
 mu = 10^(mu_db/20);
-
+mu = 1.7;
 Rs = mu/s;
 Ge = G * Rs;
 F = Ge / (1 + Ge);
-Q = Rs / (1 + Ge);
 
-figure(1)
-step(F)
-hold on
+% figure(1)
+% step(F)
+% hold on
 figure(2)
 margin(Ge)
-hold on
-figure(3)
-margin(Q)
+grid on
 hold on
 
 %% SPECIFICHE DINAMICHE
@@ -74,28 +77,12 @@ hold on
 % Fisso tau in modo da cancellare il polo della G e scelgo un Wc.
 
 tau = 1 /0.7;
-Wb = 1 / tau;
-Wc = 9;
-Mf = 70;
-
-delta = Wc/Wb;
-
-[mod, phi] = bode(Ge, Wc);
-mod_db = 20*log10(mod);
-
-% fisso alpha in modo che:
-% asin((1 - alpha)/(1 + alpha)) > -180 + Mf - phi
-
-asin = -180 + Mf - phi;
- 
-alpha = (1 - sind(asin))/(1 + sind(asin));
-
-Rd = (1 + tau*s)/(1 + tau*alpha*s);
+Wc = 7.5;
+Rd = (1 + tau*s);
 
 Rfb = Rs*Rd;
 
-L = Ge * Rd;
-Q = (Rd*Rs)/(1 + L);
+L = G * Rfb;
 F = L/(1+L);
 
 figure(1)
@@ -104,29 +91,24 @@ hold on
 grid on
 
 figure(2)
-margin(L)
-hold on
+bode(L)
+grid on
 
-figure(3)
-margin(Q)
-hold on
 % (9.5.1.1)
 % A questo punto devo diminuire il tempo di assestamento per rispettare la
 % specifica. Per farlo utilizzo un regolatore Feedforward
 
-Rff = ((1 + (1/0.7)*s)*(1 + (1/10)*s)*(1+(1/90)*s))/((1 + 0.001*s)^3);
+Rff = ((1 + (1/0.7)*s)*(1 + (1/10)*s))/((1 + 1/100*s)^2);
 F = (L/(1+L))+((G*Rff)/(1 + L));
 Q = (Rd*Rs+Rff)/(1+L);
-L = (Q*G)/(1-Q*G);
 
 figure(1)
 step(F)
 
-figure(2)
-margin(L)
-
 figure(3)
-margin(Q)
+bode(Q)
+grid on
+hold on
 
 % L'introduzione del regolatore Feedforward ha causato un forte
 % innalzamento della funzione di sensività del controllo Q(s). Proviamo ad
@@ -136,23 +118,18 @@ t = 0.65/Wc;
 Rpf = 1/((1+t*s)*(1+t*s));
 F = (G*Rpf*(Rff+Rs*Rd))/(1 + G*Rs*Rd);
 Q = (Rpf*(Rff+Rs*Rd))/(1 + G*Rs*Rd);
-L = (Q*G)/(1-Q*G);
 
 figure(1)
 step(F)
 stepinfo(F)
 grid on
 
-figure(2)
-margin(L)
-grid on
-
 figure(3)
-margin(Q)
+bode(Q)
 grid on
 
 % Anti windup
-TAU = [1 2 1];
+TAU = [1 0.7];
 [num,den] = tfdata(Rfb, 'v');
 
 aw1 = tf(num,TAU);
